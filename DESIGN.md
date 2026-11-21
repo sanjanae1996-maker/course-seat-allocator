@@ -267,22 +267,27 @@ Unit tests use small fixtures (e.g. capacity 2, waitlist cap 1) via a `TestData`
 - `unknownLearnerDropIsRejected`
 
 ### `EnrollmentServiceConcurrencyTest`
-- `onlyCapacityLearnersEnrollUnderRace` — `@RepeatedTest(100)`; one shared service
-  (capacity 5, cap 2); 10 threads released together by a `CountDownLatch` →
-  exactly 5 `ENROLLED`, 2 `WAITLISTED`, 3 `WAITLIST_FULL`; no duplicates.
-- `concurrentDropsPromoteEachOnce` — course full with 2 waitlisted; 2 enrolled learners
-  drop concurrently → both waitlisted learners promoted, each exactly once.
+Each test is `@RepeatedTest(100)`, builds a fresh service, and releases its threads together
+through a `CountDownLatch` start gate.
+
+- `simultaneousEnrollmentsDoNotOverbookCourse` — capacity 5, cap 2; 10 different learners
+  enroll at once → exactly 5 `ENROLLED`, 2 `WAITLISTED`, 3 `WAITLIST_FULL`; no duplicates,
+  nobody both enrolled and waitlisted.
+- `sameLearnerEnrollingTwiceAtOnceIsEnrolledOnce` — one learner sends 10 enroll requests at
+  once → exactly 1 `ENROLLED`, 9 `ALREADY_ENROLLED`; enrolled once.
+- `simultaneousDropsGiveEachSeatToDifferentLearner` — capacity 2, 2 waitlisted; both enrolled
+  learners drop at once → each waitlisted learner promoted exactly once; waitlist empty.
 
 ### Acceptance criteria coverage
 
 | Criterion | Tests |
 |---|---|
 | 1. Enroll with capacity + prerequisite | `enrollsWhenSeatAvailable` |
-| 2. Full → waitlist once, no duplicates | `waitlistsWhenCourseFull`, `rejectsDuplicateWaitlistRequest`, `rejectsDuplicateEnrollment` |
+| 2. Full → waitlist once, no duplicates | `waitlistsWhenCourseFull`, `rejectsDuplicateWaitlistRequest`, `rejectsDuplicateEnrollment`, `sameLearnerEnrollingTwiceAtOnceIsEnrolledOnce` |
 | 3. Drop promotes earliest eligible | `dropPromotesEarliestEligible`, `keepsFifoOrder` |
 | 4. Ineligible not enrolled/promoted; policy consistent | `rejectsWhenPrereqNotMet`, `ineligibleLearnerNotWaitlisted`, `skipsIneligibleLearnerAtFront`, `seatStaysOpenWhenNoneEligible` |
 | 5. Invalid/duplicate drops don't corrupt state | `repeatedDropReturnsNotEnrolled`, `unknownLearnerDropIsRejected`, `rejectsNullOrBlankId` |
-| 6. Concurrency | `EnrollmentServiceConcurrencyTest` |
+| 6. Concurrency | `simultaneousEnrollmentsDoNotOverbookCourse`, `sameLearnerEnrollingTwiceAtOnceIsEnrolledOnce`, `simultaneousDropsGiveEachSeatToDifferentLearner` |
 
 ---
 

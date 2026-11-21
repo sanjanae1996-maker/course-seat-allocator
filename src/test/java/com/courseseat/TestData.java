@@ -41,4 +41,13 @@ public final class TestData {
         }
         return repository;
     }
+
+    /** A new repository with eligible learners L101, L102, ... (count of them). */
+    public static LearnerRepository repositoryWithEligible(int count) {
+        LearnerRepository repository = new LearnerRepository();
+        for (int i = 1; i <= count; i++) {
+            repository.save(eligible("L" + (100 + i)));
+        }
+        return repository;
+    }
 }

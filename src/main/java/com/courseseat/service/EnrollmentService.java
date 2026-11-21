@@ -15,7 +15,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/** Enrollment state and rules for one course offering. */
+/**
+ * Enrollment state and rules for one course offering.
+ *
+ * <p>One instance represents one offering, and all request threads share it. The public
+ * methods are {@code synchronized} on this instance, which owns {@code enrolled} and
+ * {@code waitlist}, so each whole check-then-act sequence is atomic, including the
+ * promotion inside {@code drop} (DESIGN.md section 9).
+ */
 public class EnrollmentService {
 
     private final Course course;
@@ -30,7 +37,7 @@ public class EnrollmentService {
     }
 
     /** Applies the checks in DESIGN.md section 5, in order; the first match returns. */
-    public EnrollResult enroll(String learnerId) {
+    public synchronized EnrollResult enroll(String learnerId) {
         if (learnerId == null || learnerId.isBlank()) {
             return new EnrollResult(EnrollStatus.INVALID_REQUEST, learnerId);
         }
@@ -59,7 +66,7 @@ public class EnrollmentService {
     }
 
     /** Applies the checks in DESIGN.md section 6, in order; the first match returns. */
-    public DropResult drop(String learnerId) {
+    public synchronized DropResult drop(String learnerId) {
         if (learnerId == null || learnerId.isBlank()) {
             return withoutPromotion(DropStatus.INVALID_REQUEST, learnerId);
         }
@@ -75,11 +82,11 @@ public class EnrollmentService {
         return promoteNext(learnerId);
     }
 
-    public List<String> getEnrolled() {
+    public synchronized List<String> getEnrolled() {
         return List.copyOf(enrolled);
     }
 
-    public List<String> getWaitlist() {
+    public synchronized List<String> getWaitlist() {
         return List.copyOf(waitlist);
     }
 
