@@ -29,6 +29,11 @@ public final class TestData {
         return new Learner(id, "Learner " + id, Set.of("MATH100"));
     }
 
+    /** The same learner with no completed courses; save it to revoke CS101 while they wait. */
+    public static Learner revoked(String id) {
+        return new Learner(id, "Learner " + id, Set.of());
+    }
+
     public static LearnerRepository repositoryWith(Learner... learners) {
         LearnerRepository repository = new LearnerRepository();
         for (Learner learner : learners) {
