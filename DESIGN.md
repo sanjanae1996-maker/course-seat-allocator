@@ -28,7 +28,8 @@ minimal in-memory service fallback the brief allows.
 
 ## 2. Domain model
 
-All model types are immutable Java records, except the repository.
+All model types are immutable: Java records, plus enums for the statuses. The repository is
+the only class.
 
 | Type | Kind | Fields / purpose |
 |---|---|---|
@@ -42,7 +43,8 @@ All model types are immutable Java records, except the repository.
 
 Courses and learners are created and validated by other modules (e.g. a CourseService and
 LearnerService that validate input before saving). They are out of scope here; this module
-assumes it receives valid data. Records copy their sets with `Set.copyOf` so they stay
+assumes it receives valid data. `Course` and `Learner` are therefore plain data records: their
+constructors do no validation and only copy their sets with `Set.copyOf`, so they stay
 immutable.
 
 ### Collections
@@ -82,6 +84,9 @@ public synchronized List<String> getEnrolled()   // immutable copy, enrollment o
 public synchronized List<String> getWaitlist()   // immutable copy, front first
 ```
 
+- The constructor stores `course` and `learners` as given, with no null checks: the service
+  is always wired with real dependencies (by the tests, `Main`, or dependency injection in a
+  real app).
 - Business outcomes are **returned as results, never thrown**.
 - Exceptions are reserved for programming errors.
 - The getters are the read side of the API: used by tests, the demo, and a future `GET` endpoint.
@@ -160,6 +165,7 @@ for each learner ID from the front of the waitlist:
     look up the learner's current record in the repository
     if eligible  → add to enrolled, stop (promotedId = this ID)
     else         → add to skippedIds, continue
+                   (also when the record is no longer in the repository)
 if the waitlist runs out → seat stays open (promotedId = empty)
 ```
 
@@ -228,6 +234,15 @@ These hold after every operation, including rejected and concurrent ones:
 `synchronized` was chosen over `ReentrantLock` for simplicity; `ReentrantLock` would be the
 choice if a `tryLock` timeout or fair locking became a requirement.
 
+**How it is tested:** `EnrollmentServiceConcurrencyTest` (section 10) runs each scenario as
+`@RepeatedTest(100)` on a fresh service. Every request runs on its own thread from an
+`ExecutorService`, coordinated by two `CountDownLatch`es: a **ready** latch, so the main
+thread waits until every worker is at the starting line, and a **start** latch that then
+releases them all together. Results come back through `Future.get` with a timeout, so a
+deadlock fails the test instead of hanging it. Removing `synchronized` made these tests
+fail (62 failures and 20 errors out of 300 runs; exact counts vary between runs because
+races depend on timing); with it, all 300 runs pass.
+
 **Scaling (not implemented):** multiple offerings → one lock per offering
 (`ConcurrentHashMap<offeringId, CourseOffering>`); multiple app instances → move state to a
 database and lock the offering row (`SELECT … FOR UPDATE`) or use optimistic locking with a
@@ -267,8 +282,8 @@ Unit tests use small fixtures (e.g. capacity 2, waitlist cap 1) via a `TestData`
 - `unknownLearnerDropIsRejected`
 
 ### `EnrollmentServiceConcurrencyTest`
-Each test is `@RepeatedTest(100)`, builds a fresh service, and releases its threads together
-through a `CountDownLatch` start gate.
+Each test is `@RepeatedTest(100)`, builds a fresh service, and runs its requests on an
+`ExecutorService`, released together by a ready latch and a start latch (section 9).
 
 - `simultaneousEnrollmentsDoNotOverbookCourse` — capacity 5, cap 2; 10 different learners
   enroll at once → exactly 5 `ENROLLED`, 2 `WAITLISTED`, 3 `WAITLIST_FULL`; no duplicates,
@@ -277,6 +292,15 @@ through a `CountDownLatch` start gate.
   once → exactly 1 `ENROLLED`, 9 `ALREADY_ENROLLED`; enrolled once.
 - `simultaneousDropsGiveEachSeatToDifferentLearner` — capacity 2, 2 waitlisted; both enrolled
   learners drop at once → each waitlisted learner promoted exactly once; waitlist empty.
+
+### `CourseTest`
+- `validCourseIsCreated`
+- `requiredCourseIdsCannotBeChangedFromOutside` (the `Set.copyOf` defensive copy)
+
+### `LearnerRepositoryTest`
+- `findsSavedLearner`
+- `unknownIdReturnsEmpty`
+- `savingAgainReplacesLearner` (the replace behaviour used to revoke a prerequisite)
 
 ### Acceptance criteria coverage
 
@@ -293,8 +317,13 @@ through a `CountDownLatch` start gate.
 
 ## 11. Demo scenario (`Main`)
 
-Course `CS201`, capacity 5, waitlist cap 2, requires `CS101`. Prints each request, its
-result, and the enrolled list and waitlist after each step.
+Course `CS201`, capacity 5, waitlist cap 2, requires `CS101`. Learners L001–L009 (Asha to
+Isha); L004 (Dev) has only `MA101`, everyone else has `CS101`.
+
+The output reads like a story: a header before each group of steps, then for each request
+one line with the learner's ID and name and the result, followed by the enrolled list and
+waitlist. Drop lines also show who was promoted and who was skipped. The CS101 revoke in
+step 6 is printed as its own line.
 
 | Step | Request | Expected |
 |---|---|---|
@@ -322,6 +351,8 @@ src/main/java/com/courseseat/
   Main.java
 src/test/java/com/courseseat/
   TestData.java
+  model/        CourseTest
+  repository/   LearnerRepositoryTest
   service/      EnrollmentServiceTest, EnrollmentServiceConcurrencyTest
 ```
 
@@ -341,4 +372,7 @@ Commands: `mvnw.cmd test` (Windows) / `./mvnw test`; demo: `mvnw.cmd -q compile 
 - **Waitlist cap is an assumption** (20% drop rate + 1), not derived from data.
 - **No notifications:** promotion and skips are reported in `DropResult` only.
 - **Post-enrollment eligibility changes** are not acted on.
-- Input validation of courses and learners is assumed to be done upstream.
+- **Validation upstream:** input validation of courses and learners is assumed to be done
+  upstream (section 2).
+- **No `CourseRepository`:** there is only one offering, so its `Course` is passed straight
+  to the `EnrollmentService` constructor.
