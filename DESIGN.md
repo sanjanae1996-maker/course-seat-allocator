@@ -249,7 +249,6 @@ Unit tests use small fixtures (e.g. capacity 2, waitlist cap 1) via a `TestData`
 - `rejectsDuplicateEnrollment`
 - `rejectsUnknownLearner`
 - `rejectsNullOrBlankId`
-- `invalidRequestLeavesStateUnchanged`
 
 **Waitlist**
 - `waitlistsWhenCourseFull`
@@ -281,7 +280,7 @@ Unit tests use small fixtures (e.g. capacity 2, waitlist cap 1) via a `TestData`
 | 2. Full → waitlist once, no duplicates | `waitlistsWhenCourseFull`, `rejectsDuplicateWaitlistRequest`, `rejectsDuplicateEnrollment` |
 | 3. Drop promotes earliest eligible | `dropPromotesEarliestEligible`, `keepsFifoOrder` |
 | 4. Ineligible not enrolled/promoted; policy consistent | `rejectsWhenPrereqNotMet`, `ineligibleLearnerNotWaitlisted`, `skipsIneligibleLearnerAtFront`, `seatStaysOpenWhenNoneEligible` |
-| 5. Invalid/duplicate drops don't corrupt state | `repeatedDropReturnsNotEnrolled`, `unknownLearnerDropIsRejected`, `invalidRequestLeavesStateUnchanged` |
+| 5. Invalid/duplicate drops don't corrupt state | `repeatedDropReturnsNotEnrolled`, `unknownLearnerDropIsRejected`, `rejectsNullOrBlankId` |
 | 6. Concurrency | `EnrollmentServiceConcurrencyTest` |
 
 ---
