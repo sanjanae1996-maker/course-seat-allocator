@@ -83,8 +83,7 @@ public synchronized List<String> getWaitlist()   // immutable copy, front first
 ```
 
 - Business outcomes are **returned as results, never thrown**.
-- Exceptions are reserved for programming errors (e.g. a null `Course` or repository passed
-  to the `EnrollmentService` constructor).
+- Exceptions are reserved for programming errors.
 - The getters are the read side of the API: used by tests, the demo, and a future `GET` endpoint.
 
 ### REST mapping (designed, not implemented)

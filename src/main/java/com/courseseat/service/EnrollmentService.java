@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,8 +25,8 @@ public class EnrollmentService {
     private final Set<String> waitlist = new LinkedHashSet<>();
 
     public EnrollmentService(Course course, LearnerRepository learners) {
-        this.course = Objects.requireNonNull(course, "course");
-        this.learners = Objects.requireNonNull(learners, "learners");
+        this.course = course;
+        this.learners = learners;
     }
 
     /** Applies the checks in DESIGN.md section 5, in order; the first match returns. */
