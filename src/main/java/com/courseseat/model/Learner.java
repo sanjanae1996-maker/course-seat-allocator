@@ -6,12 +6,6 @@ import java.util.Set;
 public record Learner(String id, String name, Set<String> completedCourseIds) {
 
     public Learner {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("id must not be blank");
-        }
-        if (completedCourseIds == null) {
-            throw new IllegalArgumentException("completedCourseIds must not be null");
-        }
         completedCourseIds = Set.copyOf(completedCourseIds);
     }
 }

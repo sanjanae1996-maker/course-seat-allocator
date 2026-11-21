@@ -21,29 +21,6 @@ class CourseTest {
     }
 
     @Test
-    void rejectsNullOrBlankId() {
-        assertThrows(IllegalArgumentException.class, () -> new Course(null, 5, 2, Set.of()));
-        assertThrows(IllegalArgumentException.class, () -> new Course("", 5, 2, Set.of()));
-        assertThrows(IllegalArgumentException.class, () -> new Course("  ", 5, 2, Set.of()));
-    }
-
-    @Test
-    void rejectsCapacityBelowOne() {
-        assertThrows(IllegalArgumentException.class, () -> new Course("CS201", 0, 2, Set.of()));
-        assertThrows(IllegalArgumentException.class, () -> new Course("CS201", -1, 2, Set.of()));
-    }
-
-    @Test
-    void rejectsNegativeWaitlistSize() {
-        assertThrows(IllegalArgumentException.class, () -> new Course("CS201", 5, -1, Set.of()));
-    }
-
-    @Test
-    void rejectsNullRequiredCourseIds() {
-        assertThrows(IllegalArgumentException.class, () -> new Course("CS201", 5, 2, null));
-    }
-
-    @Test
     void requiredCourseIdsCannotBeChangedFromOutside() {
         Set<String> required = new HashSet<>(Set.of("CS101"));
         Course course = new Course("CS201", 5, 2, required);

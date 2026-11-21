@@ -40,9 +40,10 @@ All model types are immutable Java records, except the repository.
 | `EnrollResult` | record | `status: EnrollStatus`, `learnerId` |
 | `DropResult` | record | `status: DropStatus`, `droppedId`, `promotedId: Optional<String>`, `skippedIds: List<String>` |
 
-**Validation of `Course`** (programming errors, so they throw `IllegalArgumentException`):
-`id` not blank, `capacity >= 1`, `maxWaitlistSize >= 0`, `requiredCourseIds` not null
-(empty means no prerequisites). Sets passed in are copied with `Set.copyOf`.
+Courses and learners are created and validated by other modules (e.g. a CourseService and
+LearnerService that validate input before saving). They are out of scope here; this module
+assumes it receives valid data. Records copy their sets with `Set.copyOf` so they stay
+immutable.
 
 ### Collections
 
@@ -82,7 +83,8 @@ public synchronized List<String> getWaitlist()   // immutable copy, front first
 ```
 
 - Business outcomes are **returned as results, never thrown**.
-- Exceptions are reserved for programming errors (e.g. invalid `Course` construction).
+- Exceptions are reserved for programming errors (e.g. a null `Course` or repository passed
+  to the `EnrollmentService` constructor).
 - The getters are the read side of the API: used by tests, the demo, and a future `GET` endpoint.
 
 ### REST mapping (designed, not implemented)
@@ -335,3 +337,4 @@ Commands: `mvnw.cmd test` (Windows) / `./mvnw test`; demo: `mvnw.cmd -q compile 
 - **Waitlist cap is an assumption** (20% drop rate + 1), not derived from data.
 - **No notifications:** promotion and skips are reported in `DropResult` only.
 - **Post-enrollment eligibility changes** are not acted on.
+- Input validation of courses and learners is assumed to be done upstream.
